@@ -77,12 +77,11 @@ export default {
       level: "medium",
       delayPeriod: 1000,
       roundNumber: 0,
-
-      roundSequence: [], 
+      roundSequence: [],
+      gameStarted: false,
       gameFailed: false,
 
-      clickedButtons: [], //
-      // listenClicks: false,
+      clickedButtons: [],
       checkingIndex: 0,
 
       levels: {
@@ -135,23 +134,20 @@ export default {
       this.roundNumber = 0;
       this.gameFailed = false;
       this.delayPeriod = this.levels[this.level].delayPeriod;
-      console.log("Новый уровень сложности : ", this.level);
-      console.log("Новая задержка между нажатиями : ", this.delayPeriod);
+      // console.log("Новый уровень сложности : ", this.level);
+      // console.log("Новая задержка между нажатиями : ", this.delayPeriod);
     },
 
     roundNumber: function() {
       if (this.roundNumber) {
-        console.log("Переход в новый раунд", this.roundNumber);
+        // console.log("Переход в новый раунд", this.roundNumber);
         this.generateSequence();
       }
     },
 
     clickedButtons: function() {
-      if (
-        /*this.listenClicks && */ this.clickedButtons.length >
-        0 /* && !this.roundFinished*/
-      ) {
-        console.log(" СЛУШАЕМ ");
+      if (this.clickedButtons.length > 0) {
+        /*     console.log(" СЛУШАЕМ ");
         console.log("последовательность:", this.roundSequence);
         console.log("clickedButtons:", this.clickedButtons);
 
@@ -161,21 +157,21 @@ export default {
           ". Значение: ",
           this.roundSequence[this.checkingIndex]
         );
-
+*/
         if (
           this.clickedButtons.length > 0 &&
           this.clickedButtons[this.checkingIndex] ==
             this.roundSequence[this.checkingIndex]
         ) {
-          console.log(
+          /*  console.log(
             "Кнопка с индексом",
             this.checkingIndex,
             " угадана правильно"
-          );
+          );*/
           this.checkingIndex++;
 
           if (this.checkingIndex === this.roundSequence.length) {
-            console.log("Раунд закончен успешно! :)");
+            //  console.log("Раунд закончен успешно! :)");
             this.clearRoundInfo();
             this.nextRound();
 
@@ -197,17 +193,18 @@ export default {
       this.gameFailed = false;
 
       this.nextRound();
+      this.gameStarted = true;
     },
 
     generateSequence() {
       this.roundSequence = [];
-      console.log("Генерируем новую последовательность");
+      // console.log("Генерируем новую последовательность");
 
       for (let i = 0; i < this.roundNumber; i++) {
         this.roundSequence.push(this.randomNumber(1, 4));
       }
 
-      console.log("Новая последовательность", this.roundSequence);
+      // console.log("Новая последовательность", this.roundSequence);
       this.showSequence();
     },
 
@@ -217,7 +214,7 @@ export default {
 
     showSequence() {
       // setTimeout(() => {
-      console.log("Показываем последовательность", this.roundSequence);
+      // console.log("Показываем последовательность", this.roundSequence);
 
       let buttons = document.querySelectorAll(".btn");
       let event = new Event("click");
@@ -252,7 +249,6 @@ export default {
       }
       p.then(() => {
         this.clickedButtons = [];
-       
       });
     },
 
@@ -264,20 +260,20 @@ export default {
     },
 
     colorClicked(id, buttonName, event) {
+      if (this.gameStarted) {
+        this.buttons[id - 1].isActive = true;
 
-      this.buttons[id - 1].isActive = true;
+        let sound = this.sounds[buttonName];
 
-      let sound = this.sounds[buttonName];
+        this.playSound(sound);
+        setTimeout(() => {
+          this.buttons[id - 1].isActive = false;
+        }, 150);
 
-      this.playSound(sound);
-      setTimeout(() => {
-        this.buttons[id - 1].isActive = false;
-      }, 150); 
-
-      if ( event.isTrusted && event.type == "click") {
-        this.clickedButtons.push(id);
+        if (event.isTrusted && event.type == "click") {
+          this.clickedButtons.push(id);
+        }
       }
-
     },
 
     clearRoundInfo() {
@@ -285,18 +281,19 @@ export default {
       this.roundSequence = [];
       this.checkingIndex = 0;
 
-      console.log(`Инфа раунда ${this.roundNumber} очищена`);
+      // console.log(`Инфа раунда ${this.roundNumber} очищена`);
     },
 
     nextRound() {
       setTimeout(() => {
         this.roundNumber++;
-        console.log("Следующий раунд", this.roundNumber);
+        // console.log("Следующий раунд", this.roundNumber);
       }, this.delayPeriod * 1.5);
     },
 
     finishGame() {
-      console.log("Раунд проигран");
+      // console.log("Раунд проигран");
+      this.gameStarted = false;
       this.gameFailed = true;
     }
   }
@@ -351,7 +348,6 @@ export default {
   border-color: #494949;
 }
 
-.btn:active,
 .btn--active {
   opacity: 1;
 }
