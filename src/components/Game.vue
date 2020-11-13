@@ -2,22 +2,66 @@
   <div id="game">
     <h1 class="game__title">Simon Says</h1>
     <div class="container">
-      <div class="game__circle">
-        <Simon
-          v-bind:delayPeriod="delayPeriod"
-          v-bind:roundSequence="roundSequence"
-          v-bind:startShowing="startShowing"
-          v-bind:gameFailed="gameFailed"
-          v-on:round-finished="nextRound"
-          v-on:game-failed="finishGame"
-        />
+      <div class="game__circle circle">
+        <div class="row">
+          <button
+            class="btn btn--blue"
+            v-bind:class="{'btn--active': buttons[0].isActive}"
+            name="blue"
+            id="1"
+            v-on:click="colorClicked(1,'blue', $event)"
+          />
+          <button
+            class="btn btn--red"
+            v-bind:class="{'btn--active': buttons[1].isActive}"
+            name="red"
+            id="2"
+            v-on:click="colorClicked(2,'red', $event)"
+          />
+        </div>
+        <div class="row">
+          <button
+            class="btn btn--yellow"
+            v-bind:class="{'btn--active': buttons[2].isActive}"
+            name="yellow"
+            id="3"
+            v-on:click="colorClicked(3, 'yellow', $event)"
+          />
+          <button
+            class="btn btn--green"
+            v-bind:class="{'btn--active': buttons[3].isActive}"
+            name="green"
+            id="4"
+            v-on:click="colorClicked(4, 'green', $event)"
+          />
+        </div>
       </div>
-      <div class="game__round">
-        <Round
-          v-bind:roundNumber="roundNumber"
-          v-on:change-level="changeLevel"
-          v-on:show-sequence="showSequence"
-        />
+
+      <div class="game__round round">
+        <h3 v-if="!gameFailed" class="round__subtitle">Round: {{roundNumber}}</h3>
+        <p class="round__message" v-if="gameFailed">Game lost on Round {{roundNumber}}</p>
+        <button class="round__btn" v-on:click="restartGame">Start</button>
+        <h3 class="round__subtitle">Levels:</h3>
+        <ul class="round__levels levels">
+          <li>
+            <label>
+              <input type="radio" name="level" id="level-easy" value="easy" v-model="level" />
+              Easy
+            </label>
+          </li>
+          <li>
+            <label>
+              <input type="radio" name="level" id="level-medium" value="medium" v-model="level" />
+              Medium
+            </label>
+          </li>
+          <li>
+            <label>
+              <input type="radio" name="level" id="level-hard" value="hard" v-model="level" />
+              Hard
+            </label>
+          </li>
+        </ul>
       </div>
     </div>
   </div>
@@ -26,22 +70,21 @@
  
 
 <script>
-import Simon from "@/components/Simon";
-import Round from "@/components/Round";
 export default {
   name: "Game",
-  components: {
-    Simon,
-    Round
-  },
   data() {
     return {
-      level: "easy",
-      delayPeriod: 1500,
+      level: "medium",
+      delayPeriod: 1000,
       roundNumber: 0,
-      roundSequence: null,
-      startShowing: false,
+
+      roundSequence: [], //
+      gameStarted: false,
       gameFailed: false,
+
+      clickedButtons: [], //
+      // listenClicks: false,
+      checkingIndex: 0,
 
       levels: {
         easy: {
@@ -56,33 +99,213 @@ export default {
           label: "Сложный",
           delayPeriod: 400
         }
+      },
+      buttons: [
+        {
+          id: 1,
+          name: "blue",
+          isActive: false
+        },
+        {
+          id: 2,
+          name: "red",
+          isActive: false
+        },
+        {
+          id: 3,
+          name: "yellow",
+          isActive: false
+        },
+        {
+          id: 4,
+          name: "green",
+          isActive: false
+        }
+      ],
+      sounds: {
+        blue: "1",
+        red: "2",
+        yellow: "3",
+        green: "4"
       }
     };
   },
 
-  methods: {
-    startGame() {
-      this.roundNumber = 1;
-    },
-
-    changeLevel(level) {
-      this.level = level;
-      this.delayPeriod = this.levels[level].delayPeriod;
+  watch: {
+    level: function() {
+      this.roundNumber = 0;
+      this.gameFailed = false;
+      this.delayPeriod = this.levels[this.level].delayPeriod;
       console.log("Новый уровень сложности : ", this.level);
       console.log("Новая задержка между нажатиями : ", this.delayPeriod);
     },
 
-    showSequence(sequence) {
-      this.startShowing = true;
-      this.roundSequence = sequence.slice();
+    roundNumber: function() {
+      if (this.roundNumber) {
+        console.log("Переход в новый раунд", this.roundNumber);
+        this.generateSequence();
+      }
+    },
+
+    clickedButtons: function() {
+      if (
+        /*this.listenClicks && */ this.clickedButtons.length >
+        0 /* && !this.roundFinished*/
+      ) {
+        console.log(" СЛУШАЕМ ");
+        console.log("последовательность:", this.roundSequence);
+        console.log("clickedButtons:", this.clickedButtons);
+
+        console.log(
+          "Проверяем элемент с индексом:",
+          this.checkingIndex,
+          ". Значение: ",
+          this.roundSequence[this.checkingIndex]
+        );
+
+        if (
+          this.clickedButtons.length > 0 &&
+          this.clickedButtons[this.checkingIndex] ==
+            this.roundSequence[this.checkingIndex]
+        ) {
+          console.log(
+            "Кнопка с индексом",
+            this.checkingIndex,
+            " угадана правильно"
+          );
+          this.checkingIndex++;
+
+          if (this.checkingIndex === this.roundSequence.length) {
+            console.log("Раунд закончен успешно! :)");
+            this.clearRoundInfo();
+            this.nextRound();
+
+            /*Отправить в главный компонент сигнал о том, что раунд завершен*/
+          }
+        } else {
+          this.clearRoundInfo();
+          this.finishGame();
+        }
+      }
+    }
+  },
+
+  methods: {
+    restartGame() {
+      this.roundNumber = 0;
+      this.roundSequence = [];
+      this.clickedButtons = [];
+      this.gameFailed = false;
+
+      this.nextRound();
+    },
+
+    generateSequence() {
+      this.roundSequence = [];
+      console.log("Генерируем новую последовательность");
+
+      for (let i = 0; i < this.roundNumber; i++) {
+        this.roundSequence.push(this.randomNumber(1, 4));
+      }
+
+      console.log("Новая последовательность", this.roundSequence);
+      this.showSequence();
+    },
+
+    randomNumber(min, max) {
+      return Math.floor(Math.random() * (max - min + 1) + min);
+    },
+
+    showSequence() {
+      // setTimeout(() => {
+      console.log("Показываем последовательность", this.roundSequence);
+
+      let buttons = document.querySelectorAll(".btn");
+      let event = new Event("click");
+
+      //создаем массив кнопок в порядке их нажатия
+      let arrayToClick = [];
+
+      for (let i = 0; i < this.roundSequence.length; i++) {
+        for (let j = 0; j < buttons.length; j++) {
+          if (buttons[j].id == this.roundSequence[i]) {
+            arrayToClick.push(buttons[j]);
+            continue;
+          }
+        }
+      }
+
+      let clickAndWait = btn => {
+        return () => {
+          return new Promise(resolve => {
+            btn.dispatchEvent(event);
+            setTimeout(() => {
+              resolve();
+            }, this.delayPeriod);
+          });
+        };
+      };
+
+      let p = Promise.resolve();
+
+      for (let btn of arrayToClick) {
+        p = p.then(clickAndWait(btn));
+      }
+      p.then(() => {
+        this.clickedButtons = [];
+        // this.listenClicks = true;
+        //
+      });
+      // }, 1000);
+    },
+
+    playSound(sound) {
+      if (sound) {
+        let audio = new Audio(require(`@/sounds/${sound}.mp3`));
+        audio.play();
+      }
+    },
+
+    colorClicked(id, buttonName, event) {
+      //  if (this.gameStarted) {
+      this.buttons[id - 1].isActive = true;
+
+      let sound = this.sounds[buttonName];
+
+      this.playSound(sound);
+      setTimeout(() => {
+        this.buttons[id - 1].isActive = false;
+      }, 150); //TODO: сделать тут задержу такую же как между звуками (?)
+      //console.log("Event", event);
+
+      if (/*this.listenClicks && */ event.isTrusted && event.type == "click") {
+        this.clickedButtons.push(id);
+      }
+      // }
+    },
+
+    clearRoundInfo() {
+      this.clickedButtons = [];
+      this.roundSequence = [];
+      this.checkingIndex = 0;
+
+      //   this.listenClicks = false;
+
+      //this.roundFinished = false;
+      console.log(`Инфа раунда ${this.roundNumber} очищена`);
     },
 
     nextRound() {
-      this.startShowing = false;
-      this.roundNumber++;
+      setTimeout(() => {
+        //   this.roundFinished = true; // ------- может убрать ?
+        this.roundNumber++;
+        console.log("Следующий раунд", this.roundNumber);
+      }, this.delayPeriod * 1.5);
     },
 
     finishGame() {
+      console.log("Ты проиграла");
+      // this.gameStarted = false;
       this.gameFailed = true;
     }
   }
@@ -95,13 +318,141 @@ export default {
 }
 
 .container {
-  width: 450px;
+  width: 750px;
+  padding-left: 300px;
   margin: 0 auto;
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
 }
 
+/* Круг с кнопками */
+
+.game__circle {
+  margin-right: 40px;
+}
+
+.circle {
+  width: 300px;
+  height: 300px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  border-radius: 50%;
+  box-shadow: rgb(170, 170, 170) 2px 1px 12px 0px;
+}
+
+.row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.btn {
+  width: 150px;
+  height: 150px;
+  opacity: 0.6;
+  border: 2px solid white;
+  cursor: pointer;
+}
+
+.btn:hover {
+  border-color: #494949;
+}
+
+.btn:active,
+.btn--active {
+  opacity: 1;
+}
+
+.btn:focus {
+  outline: 0;
+}
+
+.btn--blue {
+  background-color: dodgerblue;
+  border-radius: 100% 0 0 0;
+  border-right: none;
+  border-bottom: none;
+}
+
+.btn--red {
+  background-color: #ff5643;
+  border-radius: 0 100% 0 0;
+  border-left: none;
+  border-bottom: none;
+}
+
+.btn--yellow {
+  background-color: #feef33;
+  border-radius: 0 0 0 100%;
+  border-top: none;
+  border-right: none;
+}
+
+.btn--green {
+  background-color: #bede15;
+  border-radius: 0 0 100% 0;
+  border-left: none;
+  border-top: none;
+}
+
+/* Настройки игры */
 .game__round {
   margin-top: 20px;
+}
+
+.round {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 400px;
+}
+
+.round__subtitle,
+.round__message {
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+  font-size: 1.4rem;
+}
+
+.round__message {
+  /* padding: 0;*/
+  text-align: left;
+}
+
+.round__btn {
+  padding: 0.3rem 0.6rem;
+  border: none;
+  border-radius: 10px;
+  width: 5em;
+
+  background-color: #6dabe8;
+  font-weight: 500;
+  font-family: Avenir, Helvetica, Arial, sans-serif;
+  font-size: 1.4rem;
+}
+
+.round__btn:hover {
+  filter: brightness(110%);
+}
+
+.round__btn:active {
+  filter: brightness(95%);
+}
+
+.round__btn:focus {
+  outline: none;
+}
+
+.round__levels {
+  margin: 0;
+  padding: 0;
+}
+
+.levels {
+  list-style: none;
+  text-align: left;
+  font-weight: 500;
 }
 </style>
