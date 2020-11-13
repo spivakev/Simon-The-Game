@@ -78,8 +78,7 @@ export default {
       delayPeriod: 1000,
       roundNumber: 0,
 
-      roundSequence: [], //
-      gameStarted: false,
+      roundSequence: [], 
       gameFailed: false,
 
       clickedButtons: [], //
@@ -253,10 +252,8 @@ export default {
       }
       p.then(() => {
         this.clickedButtons = [];
-        // this.listenClicks = true;
-        //
+       
       });
-      // }, 1000);
     },
 
     playSound(sound) {
@@ -267,7 +264,7 @@ export default {
     },
 
     colorClicked(id, buttonName, event) {
-      //  if (this.gameStarted) {
+
       this.buttons[id - 1].isActive = true;
 
       let sound = this.sounds[buttonName];
@@ -275,13 +272,12 @@ export default {
       this.playSound(sound);
       setTimeout(() => {
         this.buttons[id - 1].isActive = false;
-      }, 150); //TODO: сделать тут задержу такую же как между звуками (?)
-      //console.log("Event", event);
+      }, 150); 
 
-      if (/*this.listenClicks && */ event.isTrusted && event.type == "click") {
+      if ( event.isTrusted && event.type == "click") {
         this.clickedButtons.push(id);
       }
-      // }
+
     },
 
     clearRoundInfo() {
@@ -289,23 +285,18 @@ export default {
       this.roundSequence = [];
       this.checkingIndex = 0;
 
-      //   this.listenClicks = false;
-
-      //this.roundFinished = false;
       console.log(`Инфа раунда ${this.roundNumber} очищена`);
     },
 
     nextRound() {
       setTimeout(() => {
-        //   this.roundFinished = true; // ------- может убрать ?
         this.roundNumber++;
         console.log("Следующий раунд", this.roundNumber);
       }, this.delayPeriod * 1.5);
     },
 
     finishGame() {
-      console.log("Ты проиграла");
-      // this.gameStarted = false;
+      console.log("Раунд проигран");
       this.gameFailed = true;
     }
   }
