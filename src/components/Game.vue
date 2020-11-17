@@ -80,6 +80,7 @@ export default {
       roundSequence: [],
       gameStarted: false,
       gameFailed: false,
+      listenSequence: false,
 
       clickedButtons: [],
       checkingIndex: 0,
@@ -134,7 +135,6 @@ export default {
       this.roundNumber = 0;
       this.gameFailed = false;
       this.delayPeriod = this.levels[this.level].delayPeriod;
-
     },
 
     roundNumber: function() {
@@ -150,11 +150,9 @@ export default {
           this.clickedButtons[this.checkingIndex] ==
             this.roundSequence[this.checkingIndex]
         ) {
-       
           this.checkingIndex++;
 
           if (this.checkingIndex === this.roundSequence.length) {
-  
             this.clearRoundInfo();
             this.nextRound();
           }
@@ -192,7 +190,6 @@ export default {
     },
 
     showSequence() {
-
       let buttons = document.querySelectorAll(".btn");
       let event = new Event("click");
 
@@ -226,6 +223,7 @@ export default {
       }
       p.then(() => {
         this.clickedButtons = [];
+        this.listenSequence = true;
       });
     },
 
@@ -238,17 +236,20 @@ export default {
 
     colorClicked(id, buttonName, event) {
       if (this.gameStarted) {
-        this.buttons[id - 1].isActive = true;
+        //если пользователь пытается нажать на кнопку до того, как проиграна вся последовательность, воспроизведения звука и изменения стиля этой кнопки не произойдет
+        if (!event.isTrusted || (event.isTrusted && this.listenSequence)) {
+          this.buttons[id - 1].isActive = true;
 
-        let sound = this.sounds[buttonName];
+          let sound = this.sounds[buttonName];
 
-        this.playSound(sound);
-        setTimeout(() => {
-          this.buttons[id - 1].isActive = false;
-        }, 150);
+          this.playSound(sound);
+          setTimeout(() => {
+            this.buttons[id - 1].isActive = false;
+          }, 150);
 
-        if (event.isTrusted && event.type == "click") {
-          this.clickedButtons.push(id);
+          if (event.isTrusted && event.type == "click") {
+            this.clickedButtons.push(id);
+          }
         }
       }
     },
@@ -260,6 +261,7 @@ export default {
     },
 
     nextRound() {
+      this.listenSequence = false;
       setTimeout(() => {
         this.roundNumber++;
       }, this.delayPeriod * 1.5);
